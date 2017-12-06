@@ -26,9 +26,13 @@ public class MainTest {
             Main.paramsToJson(input3,output3);
             Main.paramsToJson(input4,output4);
 
+            System.out.println("Now checking equality of "+input1.getName()+" with "+output1.getName());
             assertTrue(Main.equalityCheck(output1,input1));
+            System.out.println("Now checking equality of "+input2.getName()+" with "+output2.getName());
             assertTrue(Main.equalityCheck(output2,input2));
+            System.out.println("Now checking equality of "+input3.getName()+" with "+output3.getName());
             assertTrue(Main.equalityCheck(output3,input3));
+            System.out.println("Now checking equality of "+input4.getName()+" with "+output4.getName());
             assertTrue(Main.equalityCheck(output4,input4));
 
 
@@ -65,10 +69,13 @@ public class MainTest {
             Main.JsonToParams(input4,output4);
 
 
-
+            System.out.println("Now checking equality of "+input1.getName()+" with "+output1.getName());
             assertTrue(Main.equalityCheck(input1,output1));
+            System.out.println("Now checking equality of "+input2.getName()+" with "+output2.getName());
             assertTrue(Main.equalityCheck(input2,output2));
+            System.out.println("Now checking equality of "+input3.getName()+" with "+output3.getName());
             assertTrue(Main.equalityCheck(input3,output3));
+            System.out.println("Now checking equality of "+input4.getName()+" with "+output4.getName());
             assertTrue(Main.equalityCheck(input4,output4));
 
 

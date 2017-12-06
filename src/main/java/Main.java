@@ -9,22 +9,25 @@ import java.util.Properties;
 
 public class Main {
 
+/*
     public static void main(String[] args)throws IOException{
         File inputFile = new File("highdimension.params");
         File outputFile = new File("highdimension.json");
         String json = paramsToJson(inputFile, outputFile).toString();
         equalityCheck(outputFile, inputFile);
 
-/*
+
         File inputFile1 = new File("simple.json");
         File outputFile1 = new File("temp.params");
         String params = JsonToParams(inputFile1, outputFile1);
-        equalityCheck(inputFile1, outputFile1);*/
+        equalityCheck(inputFile1, outputFile1);
+
 
 
 
 
     }
+*/
 
     public static boolean equalityCheck(File jsonFile, File paramsFile) throws IOException {
 
