@@ -1,3 +1,5 @@
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
@@ -9,25 +11,29 @@ import java.util.Properties;
 
 public class Main {
 
-/*
+    final static String NODE_DATA = "NodeData";
+
+
     public static void main(String[] args)throws IOException{
+/*
+
         File inputFile = new File("highdimension.params");
         File outputFile = new File("highdimension.json");
         String json = paramsToJson(inputFile, outputFile).toString();
         equalityCheck(outputFile, inputFile);
+*/
 
 
-        File inputFile1 = new File("simple.json");
-        File outputFile1 = new File("temp.params");
-        String params = JsonToParams(inputFile1, outputFile1);
-        equalityCheck(inputFile1, outputFile1);
+/*
 
+        File inputFile = new File("highdimension.json");
+        File outputFile = new File("highdimension.params");
+        String json = JsonToParams(inputFile, outputFile).toString();
+        equalityCheck(inputFile, outputFile);
 
-
-
+*/
 
     }
-*/
 
     public static boolean equalityCheck(File jsonFile, File paramsFile) throws IOException {
 
@@ -44,7 +50,7 @@ public class Main {
             LinkedList<String> subKeyList = new LinkedList<>(Arrays.asList(((String) key).split("\\.")));
 
             if (!checkInJson(json, subKeyList, correctValue)) {
-                System.err.println("Equality Check Failed !!");
+                System.err.println("Equality Check Failed !! for key "+key);
                 return false;
             }
 
@@ -57,35 +63,55 @@ public class Main {
 
     private static boolean checkInJson(JsonObject json,LinkedList<String>  keys, String correctValue) {
 
-        final String NODE_DATA = "NodeData";
 
+        JsonElement subJson = json.deepCopy();
 
-        for (int i=0; i<keys.size()-1; i++) {
-
-            if (json.has(keys.get(i)) && json.get(keys.get(i)) instanceof JsonObject) {
-
-                json = json.getAsJsonObject(keys.get(i));
-
+        for (int i = 0; i < keys.size()-1; i++) {
+            if (subJson.isJsonObject()) {
+                if (subJson.getAsJsonObject().has(keys.get(i))) {
+                    subJson = subJson.getAsJsonObject().get(keys.get(i));
+                }
+                else return false;
             }
-            else {
-                return false;
+            else if (subJson.isJsonArray()) {
+                int location;
+                try {
+                    location = Integer.parseInt(keys.get(i));
+
+                }catch (NumberFormatException e) {
+                    return false;
+                }
+
+                if (subJson.getAsJsonArray().size()>location) {
+                    subJson = subJson.getAsJsonArray().get(location);
+                }
+                else return false;
             }
-
-
         }
 
-        if (json.has(NODE_DATA)) {
-            json = json.getAsJsonObject(NODE_DATA);
-        }
-        else return false;
-
-
-        if (json.has(keys.getLast()) && json.get(keys.getLast()).getAsString().equals(correctValue))
-        {
+        if (keys.getLast().equals("size")) {
             return true;
         }
-        else return false;
 
+        if (subJson.isJsonObject()) {
+            String lastKey = keys.getLast();
+            String valueInJson = subJson.getAsJsonObject().get(lastKey).getAsString();
+            if (subJson.getAsJsonObject().get(keys.getLast()).getAsString().trim().equals(correctValue)) {
+                return true;
+            }
+        }
+        else if (subJson.isJsonArray()) {
+            if (subJson.getAsJsonArray().get(Integer.parseInt(keys.getLast())).getAsJsonObject().get(NODE_DATA).getAsString().equals(correctValue)) {
+                return true;
+            }
+        }
+        else {
+            System.out.println(subJson);
+        }
+
+
+
+        return false;
     }
 
 
@@ -128,52 +154,58 @@ public class Main {
         return params.toString();
     }
 
-    private static void dissolveHeirarchy(JsonObject currentRoot ,HashMap<String, String> keyVals, String heirarchy) {
+    private static void dissolveHeirarchy(JsonElement currentRoot ,HashMap<String, String> keyVals, String heirarchy) {
 
-        final String NODE_DATA = "NodeData";
+
         String currentHeirarchy = heirarchy;
 
+        if (currentRoot.isJsonObject()) {
 
+            for (String key : currentRoot.getAsJsonObject().keySet()) {
 
-        for (String key : currentRoot.keySet()) {
+                heirarchy = currentHeirarchy;
 
-            //System.out.println(key);
+                heirarchy += key + ".";
 
-            heirarchy = currentHeirarchy;
+                dissolveHeirarchy(currentRoot.getAsJsonObject().get(key),keyVals,heirarchy);
+            }
 
-            if (key.equals(NODE_DATA)) {
+        }
+        else if (currentRoot.isJsonArray()) {
 
-                addAllLeafNodes(keyVals, currentRoot.getAsJsonObject(NODE_DATA),currentHeirarchy);
+            int size = currentRoot.getAsJsonArray().size();
+            keyVals.put(heirarchy+"size",""+size);
 
+            for (int i = 0; i < size; i++) {
+                heirarchy = currentHeirarchy;
+                heirarchy += i + ".";
+
+                dissolveHeirarchy(currentRoot.getAsJsonArray().get(i),keyVals,heirarchy);
+            }
+
+        }
+        else {
+
+            if (heirarchy.endsWith(NODE_DATA+".")) {
+                System.out.println(heirarchy.substring(0,heirarchy.length()-(NODE_DATA.length()+2))+ " : "+ currentRoot.getAsString().trim());
+                keyVals.put(heirarchy.substring(0,heirarchy.length()-(NODE_DATA.length()+1)) ,  currentRoot.getAsString().trim());
             }
             else {
-                heirarchy += key+".";
-                dissolveHeirarchy(currentRoot.getAsJsonObject(key), keyVals, heirarchy);
+                System.out.println(heirarchy.substring(0,heirarchy.length()-1)+ " : "+ currentRoot.getAsString().trim());
+                keyVals.put(heirarchy.substring(0,heirarchy.length()-1), currentRoot.getAsString().trim());
             }
-        }
-
-
-    }
-
-
-    private static void addAllLeafNodes(HashMap<String, String> keyVals, JsonObject nodes, String heirarchy) {
-
-        for (String key : nodes.keySet()) {
-
-            String val = nodes.get(key).toString();
-
-            // to remove quotes around the val
-            val = val.substring(1,val.length()-1);
-
-            keyVals.put(heirarchy+key, val);
 
         }
 
     }
+
+
+
+
 
 
     public static JsonObject paramsToJson(File paramsFile, File outputFile) throws IOException {
-        HashMap<String, String> keyVals = new HashMap<>();
+        HashMap<LinkedList<String>, String> keyVals = new HashMap<>();
 
         Properties properties = new Properties();
         try {
@@ -182,9 +214,10 @@ public class Main {
             e.printStackTrace();
         }
 
-        for(String key : properties.stringPropertyNames()) {
+        for (String key : properties.stringPropertyNames()) {
             String value = properties.getProperty(key);
-            keyVals.put(key,value);
+            LinkedList<String> sub_keys = new LinkedList<>(Arrays.asList(key.split("\\.")));
+            keyVals.put(sub_keys, value);
 //            System.out.println(key + " => " + keyVals.get(key));
         }
 
@@ -203,66 +236,160 @@ public class Main {
         return jsonObject;
     }
 
-    private static JsonObject generateJSON(HashMap<String, String> keyVals) {
+
+    private static JsonObject generateJSON(HashMap<LinkedList<String>, String> keyVals) {
 
         JsonObject root = new JsonObject();
 
-        for (String key : keyVals.keySet()) {
+        // Generate Structure
 
-            LinkedList<String> sub_keys = new LinkedList<>(Arrays.asList(key.split("\\.")));
+        int longest_key_length = 0;
 
-            addToJson(root, sub_keys, keyVals.get(key));
+        LinkedList<LinkedList<String>> keysWithSize = new LinkedList<>();
 
-            //System.out.println(root);
+        for (LinkedList<String> keys : keyVals.keySet()) {
+
+
+            if (keys.contains("size")) {
+
+                keysWithSize.add(keys);
+                if (keys.size() > longest_key_length) {
+                    longest_key_length = keys.size();
+                }
+
+
+            }
         }
+
+        for (int i = 1; i <= longest_key_length; i++) {
+
+
+            for (LinkedList<String> keys : keysWithSize) {
+                if (keys.size() == i) {
+                    System.out.println("Key : " + Arrays.toString(keys.toArray()));
+                    System.out.println("Val : " + keyVals.get(keys));
+                    try {
+                        generateHeirarchy(root, keys, keyVals.get(keys));
+                    } catch (NumberFormatException e) {
+                        System.err.println("Could not add "+keys);
+                        System.err.println("Index not present while inserting into JsonArray. The file is inconsistent");
+                    }
+                    System.out.println("Root : " + root);
+                }
+
+            }
+
+        }
+
+
+
+
+
+        for (LinkedList<String> keys : keyVals.keySet()) {
+
+            if (!keys.contains("size")) {
+                System.out.println("Key : " + Arrays.toString(keys.toArray()));
+                System.out.println("Val : " + keyVals.get(keys));
+                try {
+                    generateHeirarchy(root, keys, keyVals.get(keys));
+                } catch (NumberFormatException e) {
+                    System.err.println("Could not add "+keys+"\t"+"Index not present while inserting into JsonArray. The file is inconsistent");
+
+                }
+                System.out.println("Root : " + root);
+            }
+        }
+
+
+
+
+
         return root;
     }
 
-    private static void addToJson(JsonObject root, LinkedList<String> sub_keys, String val) {
+    private static void generateHeirarchy(JsonElement root, LinkedList<String> keys, String val) throws NumberFormatException{
 
-        /*
-        We create a JsonObject of name NODE_DATA to store any leaf nodes.
-        The reason being that, sometimes the heirarchy names are same as that of leaf nodes, so we cannot have such in Json.
-
-        Like these in simple params :
-        pop.subpop.0 => ec.Subpopulation
-        pop.subpop.0.duplicate-retries => 0
-         */
-        final String NODE_DATA = "NodeData";
+        //System.out.println("Root now : "+root);
 
 
-        //System.out.println(root);
-        //System.out.println("Sub-key : "+sub_keys);
-        //System.out.println("Val : "+val);
-
-        if (sub_keys.size() == 0) {
-            return;
-        }
-        else if (sub_keys.size() == 1) {
-            // property will be replaced by newer one
-            if (!root.has(NODE_DATA)) {
-                root.add(NODE_DATA,new JsonObject());
+        if (keys.size() == 0) {
+            JsonObject root_ref = root.getAsJsonObject();
+            root_ref.addProperty(NODE_DATA, val);
+        } else if (keys.size() == 1) {
+            if (root.isJsonObject()) {
+                JsonObject root_ref = root.getAsJsonObject();
+                root_ref.addProperty(keys.getFirst(), val);
+            } else if (root.isJsonArray()) {
+                JsonArray root_ref = root.getAsJsonArray();
+                JsonObject leaf_node = new JsonObject();
+                leaf_node.addProperty(NODE_DATA, val);
+                int location = Integer.parseInt(keys.getFirst());
+                root_ref.set(location, leaf_node);
             }
-            root.get(NODE_DATA).getAsJsonObject().addProperty(sub_keys.get(0), val);
-        }
-        else {
-            // handling heirarchy here
+        } else if (keys.size() == 2 && keys.get(1).equals("size")) {
 
-            String key = sub_keys.get(0);
 
-            // check if heirarchy already exists or else create
-            if (root.has(key) && root.get(key) instanceof JsonObject) {
-                sub_keys.remove(key);
-                //System.out.println("Going inside Key : "+key);
-                addToJson(root.getAsJsonObject(key), sub_keys, val);
-                //addToJson(root.getAsJsonObject(key), sub_keys, val);
-            }
-            else {
-                root.add(key,new JsonObject());
-                addToJson(root, sub_keys, val);
+            String key = keys.get(0);
+            // create the heirarchy for key (JsonArray) here and initialize the array to size equal to val
+            int size = Integer.parseInt(val);
+            JsonArray jsonArray = new JsonArray();
+
+
+            while (jsonArray.size() < size) {
+                jsonArray.add(new JsonObject());
             }
 
+
+            if (root.isJsonArray()) {
+                int location = Integer.parseInt(key);
+                JsonArray root_ref = root.getAsJsonArray();
+
+                if (!root_ref.get(location).isJsonArray()) {
+                    root_ref.set(location, jsonArray);
+                }
+            } else if (root.isJsonObject()) {
+                JsonObject root_ref = root.getAsJsonObject();
+                if (!root_ref.has(key)) {
+                    root_ref.add(key, jsonArray);
+                }
+            }
+
+        } else if (keys.size() >= 2) {
+            // create one heirarchy and recursively call on the remaining keys
+            String key1 = keys.get(0);
+            String key2 = keys.get(1);
+
+
+
+
+            keys.removeFirst();
+
+
+            if (root.isJsonObject()) {
+
+                try {
+                    Integer.parseInt(key1);
+                    System.err.println("The parent of "+root+" should probably be a defined as a JsonArray");
+                }catch (NumberFormatException e) {
+
+                }
+
+                JsonObject root_ref = root.getAsJsonObject();
+
+                if (!root_ref.has(key1)) {
+                    root_ref.add(key1, new JsonObject());
+                }
+                generateHeirarchy(root_ref.get(key1), keys, val);
+
+            } else if (root.isJsonArray()) {
+                int location = Integer.parseInt(key1);
+
+                JsonArray root_ref = root.getAsJsonArray();
+
+                generateHeirarchy(root_ref.get(location), keys, val);
+            }
         }
+
     }
 
 
