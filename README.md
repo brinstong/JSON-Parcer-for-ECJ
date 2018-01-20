@@ -1,5 +1,5 @@
-# JSON-Parcer-for-ECJ
-Json Parcer for the ECJ project at George Mason University. 
+# JSON-Parser-for-ECJ
+Json Parser for the ECJ project at George Mason University. 
 
 Lookup for ECJ Project at :
 https://github.com/GMUEClab/ecj
