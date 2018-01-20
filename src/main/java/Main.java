@@ -11,10 +11,11 @@ import java.util.Properties;
 
 public class Main {
 
-    final static String NODE_DATA = "NodeData";
+    final static String NODE_DATA = " ";
 
 
     public static void main(String[] args)throws IOException{
+
 /*
 
         File inputFile = new File("highdimension.params");
@@ -24,20 +25,25 @@ public class Main {
 */
 
 
-/*
+
+
+
 
         File inputFile = new File("highdimension.json");
         File outputFile = new File("highdimension.params");
         String json = JsonToParams(inputFile, outputFile).toString();
         equalityCheck(inputFile, outputFile);
 
-*/
+
+
+
 
     }
 
     public static boolean equalityCheck(File jsonFile, File paramsFile) throws IOException {
 
-        JsonObject json = new JsonParser().parse(new FileReader(jsonFile)).getAsJsonObject();
+
+        JsonObject json = new JsonParser().parse(removeCommentsFromJsonFile(jsonFile)).getAsJsonObject();
         Properties properties = new Properties();
         properties.load(new FileReader(paramsFile));
 
@@ -96,12 +102,12 @@ public class Main {
         if (subJson.isJsonObject()) {
             String lastKey = keys.getLast();
             String valueInJson = subJson.getAsJsonObject().get(lastKey).getAsString();
-            if (subJson.getAsJsonObject().get(keys.getLast()).getAsString().trim().equals(correctValue)) {
+            if (subJson.getAsJsonObject().get(keys.getLast()).getAsString().trim().equals(correctValue.trim())) {
                 return true;
             }
         }
         else if (subJson.isJsonArray()) {
-            if (subJson.getAsJsonArray().get(Integer.parseInt(keys.getLast())).getAsJsonObject().get(NODE_DATA).getAsString().equals(correctValue)) {
+            if (subJson.getAsJsonArray().get(Integer.parseInt(keys.getLast())).getAsJsonObject().get(NODE_DATA).getAsString().trim().equals(correctValue.trim())) {
                 return true;
             }
         }
@@ -117,12 +123,45 @@ public class Main {
 
     public static String JsonToParams(File json, File outputFile) throws IOException {
 
-        BufferedReader br = new BufferedReader(new FileReader(json));
         JsonParser parser = new JsonParser();
+        String commentsRemoved = removeCommentsFromJsonFile(json);
+//        System.out.println("Comments Removed : "+commentsRemoved);
+        JsonObject jsonObject = parser.parse(commentsRemoved).getAsJsonObject();
 
-        JsonObject jsonObject = parser.parse(br).getAsJsonObject();
-
+//        System.out.println(jsonObject);
         return  JsonToParams(jsonObject, outputFile);
+    }
+
+    private static String removeCommentsFromJsonFile(File json) {
+        BufferedReader bufferedReader;
+
+        StringBuilder stringBuilder = new StringBuilder();
+        try {
+            bufferedReader = new BufferedReader(new FileReader(json));
+
+            String currentLine = "";
+
+            while ((currentLine = bufferedReader.readLine()) !=null) {
+//                System.out.println(currentLine);
+
+                if (currentLine.contains("#")) {
+                    currentLine = currentLine.substring(0,currentLine.indexOf("#"));
+                }
+//                System.out.println(currentLine);
+                stringBuilder.append(currentLine);
+            }
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+            System.err.println("Json File not found : "+json.getName());
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.err.println("Error During reading Json File : "+json.getName());
+        }
+
+
+//        System.out.println(stringBuilder.toString());
+        return stringBuilder.toString();
     }
 
     public static String JsonToParams(JsonObject json, File outputFile) throws IOException {
